@@ -4,8 +4,9 @@
 
     <script src="https://unpkg.com/deck.gl@^7.0.0/dist.min.js"></script>
     <script src="https://d3js.org/d3.v5.min.js"></script>
-
+    <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
     <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js"></script>
+    <script src="seoulresmin.geojson"></script>
 
     <style type="text/css">
       body {
@@ -61,9 +62,9 @@
     const deckgl = new DeckGL({
       mapboxApiAccessToken: 'pk.eyJ1IjoidGthaG5nIiwiYSI6ImNqOTU3aWtnejRldGgycnF6d3JueG5wb2IifQ.vOYkEc5_mcoA2gtILL5ZmA',
       mapStyle: 'mapbox://styles/mapbox/dark-v9',
-      longitude: -1.4157,
-      latitude: 52.2324,
-      zoom: 6,
+      longitude: 126.994,
+      latitude: 37.518,
+      zoom: 10,
       minZoom: 5,
       maxZoom: 15,
       pitch: 40.5
@@ -101,10 +102,10 @@
         colorRange: COLOR_RANGE,
         data,
         elevationRange: [0, 1000],
-        elevationScale: 250,
+        elevationScale: 10,
         extruded: true,
         getPosition: d => d,
-        opacity: 1,
+        opacity: 0.5,
         ...options
       });
 
@@ -114,19 +115,24 @@
     }
 
 
-    d3.csv('https://raw.githubusercontent.com/uber-common/deck.gl-data/master/examples/3d-heatmap/heatmap-data.csv')
-      .then(response => {
-      data = response.map(d => [Number(d.lng), Number(d.lat)]);
-      renderLayer();
-		});
-
-		// var seoulres = '../../../data/seoulresdata.geojson';
-
-		// d3.json(('https://github.com/tkahng/deckgl-test/blob/master/data/seoulresdata.geojson')
-		// 	.then(response => {
+    // d3.csv('https://raw.githubusercontent.com/uber-common/deck.gl-data/master/examples/3d-heatmap/heatmap-data.csv')
+    //   .then(response => {
     //   data = response.map(d => [Number(d.lng), Number(d.lat)]);
     //   renderLayer();
-    // });
+		// });
+
+		// var res = 'seoulresmin.geojson';
+
+		// d3.json('seoulresmin')
+		// 	.then(response => {
+    //   data = response.features.geometry.coordinates.map(d => [Number(d.lng), Number(d.lat)]);
+    //   renderLayer();
+    // })  ;
+
+    (function () {
+      data = turf.coordAll(seoulresmin);
+      renderLayer();
+    })();
     
 
   </script>
