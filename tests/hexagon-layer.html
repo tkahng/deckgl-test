@@ -6,7 +6,7 @@
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
     <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js"></script>
-    <script src="seoulresmin.geojson"></script>
+    <script src="seoulhousingpricewgs.geojson"></script>
 
     <style type="text/css">
       body {
@@ -39,7 +39,7 @@
     <div id="control-panel">
       <div>
         <label>Radius</label>
-        <input id="radius" type="range" min="1000" max="20000" step="1000" value="1000"></input>
+        <input id="radius" type="range" min="100" max="2000" step="10" value="1000"></input>
         <span id="radius-value"></span>
       </div>
       <div>
@@ -52,6 +52,11 @@
         <input id="upperPercentile" type="range" min="90" max="100" step="1" value="100"></input>
         <span id="upperPercentile-value"></span>
       </div>
+      <!-- <div>
+        <label>Elevation Range</label>
+        <input id="elevationRange" type="range" min="10" max="100" step="1" value="100"></input>
+        <span id="elevationRange-value"></span>
+      </div> -->
     </div>
   </body>
 
@@ -75,6 +80,12 @@
     let data = null;
 
     const OPTIONS = ['radius', 'coverage', 'upperPercentile'];
+
+    
+
+    // let UPPER_PERCENTILE = null;
+
+    // let ELEVATION_RANGE = [0, null];
 
     const COLOR_RANGE = [
       [1, 152, 189],
@@ -102,7 +113,7 @@
         colorRange: COLOR_RANGE,
         data,
         elevationRange: [0, 1000],
-        elevationScale: 10,
+        elevationScale: 5,
         extruded: true,
         getPosition: d => d,
         opacity: 0.5,
@@ -130,7 +141,7 @@
     // })  ;
 
     (function () {
-      data = turf.coordAll(seoulresmin);
+      data = turf.coordAll(seoulhousingpricewgs);
       renderLayer();
     })();
     
