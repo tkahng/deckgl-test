@@ -6,6 +6,7 @@
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
     <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js"></script>
+    <script src="https://unpkg.com/h3-js"></script>
     <script src="seoulhousingpricewgs.geojson"></script>
 
     <style type="text/css">
@@ -131,14 +132,6 @@
     //   data = response.map(d => [Number(d.lng), Number(d.lat)]);
     //   renderLayer();
 		// });
-
-		// var res = 'seoulresmin.geojson';
-
-		// d3.json('seoulresmin')
-		// 	.then(response => {
-    //   data = response.features.geometry.coordinates.map(d => [Number(d.lng), Number(d.lat)]);
-    //   renderLayer();
-    // })  ;
 
     (function () {
       data = turf.coordAll(seoulhousingpricewgs);
