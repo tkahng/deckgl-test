@@ -81,7 +81,10 @@
     let data = null;
 
     const OPTIONS = ['radius', 'coverage', 'upperPercentile'];
-
+    const arrMax = arr => Math.max(...arr);
+    const arrMin = arr => Math.min(...arr);
+    const arrAvg = arr => arr.reduce((a,b) => a + b, 0) / arr.length;
+    const arrSum = arr => arr.reduce((a,b) => a + b, 0);
     
 
     // let UPPER_PERCENTILE = null;
@@ -108,15 +111,7 @@
         document.getElementById(key + '-value').innerHTML = value;
         options[key] = Number(value);
       });
-      // const getElevationValue = d => d.reduce(
-      // 	(accumulator, currentValue) => currentValue ? 
-      // 		accumulator + currentValue.SPACES : accumulator, 
-      // 	0
-      // ),
-      const arrMax = arr => Math.max(...arr);
-      const arrMin = arr => Math.min(...arr);
-      const arrAvg = arr => arr.reduce((a,b) => a + b, 0) / arr.length;
-      const arrSum = arr => arr.reduce((a,b) => a + b, 0);
+
       const hexagonLayer = new HexagonLayer({
         id: 'heatmap',
         colorRange: COLOR_RANGE,
@@ -138,26 +133,6 @@
         layers: [hexagonLayer]
       });
     }
-
-
-    // d3.csv('https://raw.githubusercontent.com/uber-common/deck.gl-data/master/examples/3d-heatmap/heatmap-data.csv')
-    //   .then(response => {
-    //   data = response.map(d => [Number(d.lng), Number(d.lat)]);
-    //   renderLayer();
-		// });
-
-		// var res = 'seoulresmin.geojson';
-
-		// d3.json('seoulresmin')
-		// 	.then(response => {
-    //   data = response.features.geometry.coordinates.map(d => [Number(d.lng), Number(d.lat)]);
-    //   renderLayer();
-    // })  ;
-
-    // (function () {
-    //   data = turf.coordAll(seoulhousingpricewgs);
-    //   renderLayer();
-    // })();
 
     (function () {
       data = seoulhousingpricewgs.features;
