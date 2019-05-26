@@ -6,6 +6,7 @@
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
     <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js"></script>
     <script src="seoulhousingpricewgs.geojson"></script>
 
     <style type="text/css">
@@ -122,7 +123,7 @@
         getPosition: d => turf.getCoords(d),
         getElevationValue: d => d.reduce(
         	(accumulator, currentValue) => currentValue ? 
-        		accumulator + currentValue.properties['A15'] : accumulator, 
+        		accumulator + _.get(currentValue, 'properties.A15') : accumulator, 
         	0
         ),
         opacity: 0.5,

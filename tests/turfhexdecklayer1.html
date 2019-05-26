@@ -6,7 +6,8 @@
     <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@5/turf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js"></script>
-    <script src="seoulresmin.geojson" type="text/javascript"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script> 
+    <script src="seoulhousingpricewgs.geojson" type="text/javascript"></script>
 
     <style type="text/css">
       body {
@@ -41,9 +42,31 @@
 
 
     const bbox = [126.8, 37.4, 127.2, 37.7];
-    const cellSide = 1;
+    const cellSide = 0.5;
     const options = {};
-    const hexGrid = turf.hexGrid(bbox, cellSide, options);    
+    var cleanHexGrid =[];
+    var hexGrid = turf.hexGrid(bbox, cellSide, options);    
+    hexGrid.features.forEach(f => {
+      f.properties = { density: Math.random() };
+    });
+
+    var hexGrid = turf.collect(hexGrid, seoulhousingpricewgs, 'A15', 'values');
+
+    hexGrid.features.forEach(f => {
+      f.properties.values = _.mean(f.properties.values)
+    });
+    
+    // _.reject(hexGrid.features, ['values', NaN]);
+    
+    var matchingFeatures = hexGrid.features.filter(function (feature){ 
+       return feature.properties.values >= 0 
+    })
+
+    var collection = turf.featureCollection(matchingFeatures);
+
+    var hexpricemax = _.max(_.map(matchingFeatures, _.property('properties.values')));
+    var hexpricemin = _.min(_.map(matchingFeatures, _.property('properties.values')));
+    
 
     const {DeckGL, GeoJsonLayer} = deck;
 
@@ -67,7 +90,8 @@
     ];
 
     const geojsonLayer = new GeoJsonLayer({
-      data: 'https://raw.githubusercontent.com/uber-common/deck.gl-data/master/examples/geojson/vancouver-blocks.json',
+      // data: 'https://raw.githubusercontent.com/uber-common/deck.gl-data/master/examples/geojson/vancouver-blocks.json',
+      data: matchingFeatures,
       opacity: 0.8,
       stroked: false,
       filled: true,
@@ -75,8 +99,8 @@
       wireframe: true,
       fp64: true,
 
-      getElevation: f => Math.sqrt(f.properties.valuePerSqm) * 10,
-      getFillColor: f => colorScale(f.properties.growth),
+      getElevation: f => Math.sqrt(f.properties.values) * 1,
+      getFillColor: f => colorScale(f.properties.density),
       getLineColor: [255, 255, 255],
 
       pickable: true,
@@ -86,8 +110,8 @@
     new DeckGL({
       mapboxApiAccessToken: 'pk.eyJ1IjoidGthaG5nIiwiYSI6ImNqOTU3aWtnejRldGgycnF6d3JueG5wb2IifQ.vOYkEc5_mcoA2gtILL5ZmA',
       mapStyle: 'mapbox://styles/mapbox/light-v9',
-      latitude: 49.254,
-      longitude: -123.13,
+      latitude: 37.518,
+      longitude: 126.994,
       zoom: 11,
       maxZoom: 16,
       pitch: 45,
@@ -110,9 +134,9 @@
         tooltip.style.left = `${x}px`;
         tooltip.innerHTML = `
     <div><b>Average Property Value &nbsp;</b></div>
-    <div><div>${object.properties.valuePerSqm} / m<sup>2</sup></div></div>
+    <div><div>${object.properties.values} / m<sup>2</sup></div></div>
     <div><b>Growth</b></div>
-    <div>${Math.round(object.properties.growth * 100)}%</div>
+    <div>${Math.round(object.properties.density * 100)}%</div>
     `;
       } else { 
         tooltip.innerHTML = '';
