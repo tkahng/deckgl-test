@@ -119,7 +119,7 @@
         elevationRange: [0, 1000],
         elevationScale: 5,
         extruded: true,
-        getPosition: d => d,
+        getPosition: d => turf.getCoords(d),
         getElevationValue: d => d.reduce(
         	(accumulator, currentValue) => currentValue ? 
         		accumulator + currentValue.properties['A15'] : accumulator, 
@@ -134,13 +134,10 @@
       });
     }
 
-
-    d3.csv('https://raw.githubusercontent.com/uber-common/deck.gl-data/master/examples/3d-heatmap/heatmap-data.csv')
-      .then(response => {
-      data = response.map(d => [Number(d.lng), Number(d.lat)]);
+    (function () {
+      data = seoulhousingpricewgs.features;
       renderLayer();
-    });
-    
+    })();
 
   </script>
 </html>
