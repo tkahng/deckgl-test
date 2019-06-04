@@ -81,6 +81,8 @@
     });
 
     var hexGrid = turf.collect(hexGrid, seoulhousingpricewgs, 'A15', 'values');
+    var hexGrid = turf.collect(hexGrid, seoulhousingpricewgs, 'A9', 'types');
+
 
     hexGrid.features.forEach(f => {
       f.properties.values = _.mean(f.properties.values)
