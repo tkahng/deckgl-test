@@ -3,10 +3,11 @@
     <title>deck.gl HexagonLayer Example</title>
 
     <script src="https://unpkg.com/deck.gl@^7.0.0/dist.min.js"></script>
-    <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
     <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script> 
+    <script src="https://d3js.org/d3-scale.v3.min.js"></script>
     <script src="seoulhousingpricewgs.geojson"></script>
 
     <style type="text/css">
@@ -82,10 +83,6 @@
     let data = null;
 
     const OPTIONS = ['radius', 'coverage', 'upperPercentile'];
-    const arrMax = arr => Math.max(...arr);
-    const arrMin = arr => Math.min(...arr);
-    const arrAvg = arr => arr.reduce((a,b) => a + b, 0) / arr.length;
-    const arrSum = arr => arr.reduce((a,b) => a + b, 0);
     
 
     // let UPPER_PERCENTILE = null;
@@ -100,6 +97,8 @@
       [254, 173, 84],
       [209, 55, 78]
     ];
+
+    // _.reverse(COLOR_RANGE);
 
     OPTIONS.forEach(key => {
       document.getElementById(key).oninput = renderLayer;
@@ -121,11 +120,7 @@
         elevationScale: 5,
         extruded: true,
         getPosition: d => turf.getCoords(d),
-        getElevationValue: d => d.reduce(
-        	(accumulator, currentValue) => currentValue ? 
-        		accumulator + _.get(currentValue, 'properties.A15') : accumulator, 
-        	0
-        ),
+        getElevationValue: d => _.mean(_.map(d, _.property('properties.A15'))),
         opacity: 0.5,
         ...options
       });
