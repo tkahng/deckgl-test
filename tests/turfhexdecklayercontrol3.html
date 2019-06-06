@@ -71,34 +71,8 @@
 
     const OPTIONS = ['radius', 'coverage', 'upperPercentile'];
 
-    const bbox = [126.8, 37.4, 127.2, 37.7];
-    const cellSide = 0.3;
-    const options = {};
-    var cleanHexGrid =[];
-    var hexGrid = turf.hexGrid(bbox, cellSide, options);    
-    hexGrid.features.forEach(f => {
-      f.properties = { density: Math.random() };
-    });
-
-    var hexGrid = turf.collect(hexGrid, seoulhousingpricewgs, 'A15', 'values');
-    var hexGrid = turf.collect(hexGrid, seoulhousingpricewgs, 'A9', 'types');
-
-    hexGrid.features.forEach(f => {
-      f.properties.values = _.mean(f.properties.values)
-    });
+    const bbox = turf.bbox(seoulhousingpricewgs);
     
-    var matchingFeatures = hexGrid.features.filter(function (feature){ 
-       return feature.properties.values >= 0 
-    })
-
-    var collection = turf.featureCollection(matchingFeatures);
-
-    var scaledFeatures = turf.transformScale(collection, 0.5);
-
-    var hexpricemax = _.max(_.map(matchingFeatures, _.property('properties.values')));
-    var hexpricemin = _.min(_.map(matchingFeatures, _.property('properties.values')));
-    
-
     const {DeckGL, GeoJsonLayer} = deck;
 
     const COLOR_SCALE = [
@@ -139,9 +113,8 @@
       });
 
       const cellSide = 0.3;
-      const options = {};
       var cleanHexGrid =[];
-      var hexGrid = turf.hexGrid(bbox, cellSide, options);    
+      var hexGrid = turf.hexGrid(bbox, cellSide);    
       hexGrid.features.forEach(f => {
         f.properties = { density: Math.random() };
       });

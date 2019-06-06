@@ -1,0 +1,178 @@
+<html>
+  <head>
+    <title>deck.gl GeoJsonLayer Hexbin Turfjs</title>
+
+    <script src="https://unpkg.com/deck.gl@^7.0.0/dist.min.js"></script>
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.54.0/mapbox-gl.js"></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.54.0/mapbox-gl.css' rel='stylesheet' />
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@5/turf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script> 
+    <script src="https://d3js.org/d3-scale.v3.min.js"></script>
+    <script src="seoulhousingpricewgs.geojson" type="text/javascript"></script>
+
+    <style type="text/css">
+      body {
+        width: 100vw;
+        height: 100vh;
+        margin: 0;
+      }
+      #control-panel {
+        position: absolute;
+        background: #fff;
+        top: 0;
+        left: 0;
+        margin: 12px;
+        padding: 20px;
+        font-size: 12px;
+        line-height: 1.5;
+        z-index: 1;
+      }
+      #tooltip:empty {
+        display: none;
+      }
+      #tooltip {
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 11px;
+        position: absolute;
+        padding: 4px;
+        margin: 8px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        max-width: 300px;
+        font-size: 10px;
+        z-index: 9;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="tooltip"></div>
+  </body>
+
+  <script type="text/javascript">
+
+    const bbox = turf.bbox(seoulhousingpricewgs);
+    const cellSide = 0.3;
+    const options = {};
+    var cleanHexGrid =[];
+    var hexGrid = turf.hexGrid(bbox, cellSide, options);    
+    hexGrid.features.forEach(f => {
+      f.properties = { density: Math.random() };
+    });
+
+    var hexGrid = turf.collect(hexGrid, seoulhousingpricewgs, 'A15', 'values');
+    var hexGrid = turf.collect(hexGrid, seoulhousingpricewgs, 'A9', 'types');
+
+
+    hexGrid.features.forEach(f => {
+      f.properties.values = _.mean(f.properties.values)
+    });
+    
+    
+    var matchingFeatures = hexGrid.features.filter(function (feature){ 
+       return feature.properties.types.length > 0 
+    })
+
+    var collection = turf.featureCollection(matchingFeatures);
+
+    var scaledFeatures = turf.transformScale(collection, 0.5);
+
+    var hexpricemax = _.max(_.map(matchingFeatures, _.property('properties.values')));
+    var hexpricemin = _.min(_.map(matchingFeatures, _.property('properties.values')));
+    
+
+    const {DeckGL, GeoJsonLayer} = deck;
+
+    const COLOR_SCALE = [
+      // negative
+      
+      [65, 182, 196],
+      [127, 205, 187],
+      [199, 233, 180],
+      [237, 248, 177],
+
+      // positive
+      // [255, 255, 204],
+      // [255, 237, 160],
+      // [254, 217, 118],
+      // [254, 178, 76],
+      // [253, 141, 60],
+      // [252, 78, 42],
+      // [227, 26, 28],
+      // [189, 0, 38],
+      // [128, 0, 38]
+
+      [1, 152, 189],
+      [73, 227, 206],
+      [216, 254, 181],
+      [254, 237, 177],
+      [254, 173, 84],
+      [209, 55, 78]
+    ];
+
+    var colorLinearScale = d3.scaleLinear()
+                    .domain([hexpricemin, hexpricemax])
+                    .range([0.00,1.00]);
+
+    var valueLinearScale = d3.scaleLinear()
+                    .domain([hexpricemin, hexpricemax])
+                    .range([0.00,3000.00]);
+
+    const geojsonLayer = new GeoJsonLayer({
+      data: scaledFeatures,
+      opacity: 1,
+      stroked: false,
+      filled: true,
+      extruded: true,
+      wireframe: false,
+      fp64: true,
+
+      getElevation: f => valueLinearScale(f.properties.values),
+      getFillColor: f => colorScale(colorLinearScale(f.properties.values)),
+      getLineColor: [255, 255, 255],
+
+      pickable: true,
+      onHover: updateTooltip
+    });
+
+    new DeckGL({
+      mapboxApiAccessToken: 'pk.eyJ1IjoidGthaG5nIiwiYSI6ImNqOTU3aWtnejRldGgycnF6d3JueG5wb2IifQ.vOYkEc5_mcoA2gtILL5ZmA',
+      mapStyle: 'mapbox://styles/mapbox/dark-v9',
+      latitude: 37.518,
+      longitude: 126.994,
+      zoom: 11,
+      maxZoom: 16,
+      pitch: 60,
+      bearing: 150,
+      layers: [geojsonLayer]
+    });
+
+    function colorScale(x) {
+      const i = Math.round(x * 7) + 4;
+      if (x < 0) {
+        return COLOR_SCALE[i] || COLOR_SCALE[0];
+      }
+      return COLOR_SCALE[i] || COLOR_SCALE[COLOR_SCALE.length - 1];
+    }
+
+    function updateTooltip({x, y, object}) {
+      const tooltip = document.getElementById('tooltip');
+
+      if (object) {
+        tooltip.style.top = `${y}px`;
+        tooltip.style.left = `${x}px`;
+        tooltip.innerHTML = `
+    <div><b>Average Property Value &nbsp;</b></div>
+    <div><div>${object.properties.values} / m<sup>2</sup></div></div>
+    <div><b>Growth</b></div>
+    <div>${Math.round(object.properties.density * 100)}%</div>
+    `;
+      } else { 
+        tooltip.innerHTML = '';
+      }
+    }
+
+  </script>
+</html>
