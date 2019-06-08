@@ -1,22 +1,25 @@
 <html>
   <head>
-    <title>deck.gl HexagonLayer Example</title>
+    <title>deck.gl GeoJsonLayer Hexbin Turfjs</title>
 
     <script src="https://unpkg.com/deck.gl@^7.0.0/dist.min.js"></script>
-    <script src="https://d3js.org/d3.v5.min.js"></script>
-    <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
-    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js"></script>
     <script src="https://unpkg.com/h3-js"></script>
-    <script src="seoulhousingpricewgs.geojson"></script>
+    <script src="https://bundle.run/geojson2h3@1.0.1"></script>
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.54.0/mapbox-gl.js"></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.54.0/mapbox-gl.css' rel='stylesheet' />
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@5/turf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script> 
+    <script src="https://d3js.org/d3-scale.v3.min.js"></script>
+
+    <script src="seoulhousingpricewgs.geojson" type="text/javascript"></script>
 
     <style type="text/css">
       body {
-        font-family: Helvetica, Arial, sans-serif;
         width: 100vw;
         height: 100vh;
         margin: 0;
       }
-
       #control-panel {
         position: absolute;
         background: #fff;
@@ -28,116 +31,211 @@
         line-height: 1.5;
         z-index: 1;
       }
-
-      label {
-        display: inline-block;
-        width: 140px;
+      #tooltip:empty {
+        display: none;
+      }
+      #tooltip {
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 11px;
+        position: absolute;
+        padding: 4px;
+        margin: 8px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        max-width: 300px;
+        font-size: 10px;
+        z-index: 9;
+        pointer-events: none;
       }
     </style>
   </head>
 
   <body>
-    <div id="control-panel">
-      <div>
-        <label>Radius</label>
-        <input id="radius" type="range" min="100" max="2000" step="10" value="1000"></input>
-        <span id="radius-value"></span>
-      </div>
-      <div>
-        <label>Coverage</label>
-        <input id="coverage" type="range" min="0" max="1" step="0.1" value="1"></input>
-        <span id="coverage-value"></span>
-      </div>
-      <div>
-        <label>Upper Percentile</label>
-        <input id="upperPercentile" type="range" min="90" max="100" step="1" value="100"></input>
-        <span id="upperPercentile-value"></span>
-      </div>
-      <!-- <div>
-        <label>Elevation Range</label>
-        <input id="elevationRange" type="range" min="10" max="100" step="1" value="100"></input>
-        <span id="elevationRange-value"></span>
-      </div> -->
-    </div>
+    <div id="tooltip"></div>
   </body>
 
   <script type="text/javascript">
 
-    const {DeckGL, HexagonLayer} = deck;
+    const bbox = turf.bbox(seoulhousingpricewgs);
+    const cellSide = 0.3;
+    const options = {};
+    var cleanHexGrid =[];
+    var hexGrid = turf.hexGrid(bbox, cellSide, options);    
+    hexGrid.features.forEach(f => {
+      f.properties = { density: Math.random() };
+    });
 
-    const deckgl = new DeckGL({
+    var hexGrid = turf.collect(hexGrid, seoulhousingpricewgs, 'A15', 'values');
+    var hexGrid = turf.collect(hexGrid, seoulhousingpricewgs, 'A9', 'types');
+
+    hexGrid.features.forEach(f => {
+      f.properties.count = f.properties.types.length;
+      f.properties.values = _.mean(f.properties.values);
+
+    });
+    
+    var matchingFeatures = hexGrid.features.filter(function (feature){ 
+       return feature.properties.types.length > 0 
+    })
+
+    var hexpricemax = _.max(_.map(matchingFeatures, _.property('properties.values')));
+    var hexpricemin = _.min(_.map(matchingFeatures, _.property('properties.values')));
+    var hexcountmax = _.max(_.map(matchingFeatures, _.property('properties.count')));
+    var hexcountmin = _.min(_.map(matchingFeatures, _.property('properties.count')));
+
+    var colorLinearScale = d3.scaleLinear()
+                    .domain([hexpricemin, hexpricemax])
+                    .range([0.00,1.00]);
+
+    var valueLinearScale = d3.scaleLinear()
+                    .domain([hexpricemin, hexpricemax])
+                    .range([0.00,3000.00]);
+
+    var countLinearScale = d3.scaleLinear()
+                    .domain([hexcountmin, hexcountmax])
+                    .range([0.50,2.0]);
+
+    var alphaLinearScale = d3.scaleLinear()
+                    .domain([hexpricemin, hexpricemax])
+                    // .domain([hexcountmin, hexcountmax])
+                    .range([50,300]);
+
+    matchingFeatures.forEach(f=>{
+      f.properties.scale = countLinearScale(f.properties.count);
+      var fcolor = rgbVal(d3.interpolateSpectral(1-colorLinearScale(f.properties.values)));
+      fcolor.push(Math.round(alphaLinearScale(f.properties.values)));
+      f.properties.color = fcolor;
+    });
+
+    var scaledFeatures = matchingFeatures.map(f => turf.transformScale(f, f.properties.scale)); 
+
+    var collection = turf.featureCollection(scaledFeatures);
+
+    var h3Resolution = 7;
+
+    var hexset = bufferPointsLinear(seoulhousingpricewgs, kmToRadius(1))
+
+    const geojson = geojson2h3.h3SetToFeatureCollection(
+      Object.keys(hexset),
+      hex => ({value: hexset[hex]})
+    );
+
+
+
+    const {DeckGL, GeoJsonLayer} = deck;
+
+    const geojsonLayer = new GeoJsonLayer({
+      data: geojson,
+      opacity: 1,
+      stroked: true,
+      filled: true,
+      extruded: false,
+      wireframe: false,
+      fp64: true,
+      // getElevation: f => valueLinearScale(f.properties.values),
+      // getFillColor: f => f.properties.color,
+      getLineColor: [255, 255, 255, 255],
+      getLineWidth: 2,
+      pickable: true,
+      onHover: updateTooltip
+    });
+
+    new DeckGL({
       mapboxApiAccessToken: 'pk.eyJ1IjoidGthaG5nIiwiYSI6ImNqOTU3aWtnejRldGgycnF6d3JueG5wb2IifQ.vOYkEc5_mcoA2gtILL5ZmA',
       mapStyle: 'mapbox://styles/mapbox/dark-v9',
-      longitude: 126.994,
       latitude: 37.518,
-      zoom: 10,
-      minZoom: 5,
-      maxZoom: 15,
-      pitch: 40.5
+      longitude: 126.994,
+      zoom: 11,
+      maxZoom: 16,
+      pitch: 60,
+      bearing: 150,
+      layers: [geojsonLayer]
     });
 
-
-
-    let data = null;
-
-    const OPTIONS = ['radius', 'coverage', 'upperPercentile'];
-
-    
-
-    // let UPPER_PERCENTILE = null;
-
-    // let ELEVATION_RANGE = [0, null];
-
-    const COLOR_RANGE = [
-      [1, 152, 189],
-      [73, 227, 206],
-      [216, 254, 181],
-      [254, 237, 177],
-      [254, 173, 84],
-      [209, 55, 78]
-    ];
-
-    OPTIONS.forEach(key => {
-      document.getElementById(key).oninput = renderLayer;
-    });
-
-    function renderLayer () {
-      const options = {};
-      OPTIONS.forEach(key => {
-        const value = document.getElementById(key).value;
-        document.getElementById(key + '-value').innerHTML = value;
-        options[key] = Number(value);
+    function bufferPoints(geojson, radius) {
+      const layer = {};
+      geojson.features.forEach(feature => {
+        const [lng, lat] = feature.geometry.coordinates;
+        const stationIndex = h3.geoToH3(lat, lng, h3Resolution);
+        const ring = h3.kRing(stationIndex, radius);
+        ring.forEach(h3Index => {
+          layer[h3Index] = (layer[h3Index] || 0) + 1;
+        });
       });
-
-      const hexagonLayer = new HexagonLayer({
-        id: 'heatmap',
-        colorRange: COLOR_RANGE,
-        data,
-        elevationRange: [0, 1000],
-        elevationScale: 5,
-        extruded: true,
-        getPosition: d => d,
-        opacity: 0.5,
-        ...options
-      });
-
-      deckgl.setProps({
-        layers: [hexagonLayer]
-      });
+      return normalizeLayer(layer, true);
     }
 
+    function bufferPointsLinear(geojson, radius) {
+      const layer = {};
+      geojson.features.forEach(feature => {
+        const [lng, lat] = feature.geometry.coordinates;
+        const stationIndex = h3.geoToH3(lat, lng, h3Resolution);
+        // add surrounding multiple surrounding rings, with less weight in each
+        const rings = h3.kRingDistances(stationIndex, radius);
+        const step = 1 / (radius + 1);
+        rings.forEach((ring, distance) => {
+          ring.forEach(h3Index => {
+            layer[h3Index] = (layer[h3Index] || 0) + 1 - distance * step;
+          })
+        });
+      });
+      return normalizeLayer(layer);
+    }
 
-    // d3.csv('https://raw.githubusercontent.com/uber-common/deck.gl-data/master/examples/3d-heatmap/heatmap-data.csv')
-    //   .then(response => {
-    //   data = response.map(d => [Number(d.lng), Number(d.lat)]);
-    //   renderLayer();
-		// });
+    function normalizeLayer(layer, zeroBaseline = false) {
+      const hexagons = Object.keys(layer);
+      // Pass one, get max (and min if needed)
+      const max = hexagons.reduce((max, hex) => Math.max(max, layer[hex]), -Infinity);
+      const min = zeroBaseline ? 0 :
+            hexagons.reduce((min, hex) => Math.min(min, layer[hex]), Infinity);
+      // Pass two, normalize
+      hexagons.forEach(hex => {
+        layer[hex] = (layer[hex] - min) / (max - min); 
+      });
+      return layer;
+    }
 
-    (function () {
-      data = turf.coordAll(seoulhousingpricewgs);
-      renderLayer();
-    })();
+    // Transform a kilometer measurement to a k-ring radius
+    function kmToRadius(km) {
+      return Math.floor(km / h3.edgeLength(h3Resolution, h3.UNITS.km));
+    }
+
+    function countPoints(geojson) {
+      const layer = {};
+      geojson.features.forEach(feature => {
+        const [lng, lat] = feature.geometry.coordinates;
+        const h3Index = h3.geoToH3(lat, lng, h3Resolution);
+        layer[h3Index] = (layer[h3Index] || 0) + 1;
+      });
+      return normalizeLayer(layer, true);
+    }
     
+    function rgbVal(c) {
+      let rgb = _.values(d3.color(c));
+      rgb.splice(-1,1);
+      return rgb;
+    }
+
+    function updateTooltip({x, y, object}) {
+      const tooltip = document.getElementById('tooltip');
+
+      if (object) {
+        tooltip.style.top = `${y}px`;
+        tooltip.style.left = `${x}px`;
+        tooltip.innerHTML = `
+    <div><b>Average Property Value &nbsp;</b></div>
+    <div><div>${object.properties.values} / m<sup>2</sup></div></div>
+    <div><b>scale</b></div>
+    <div>${object.properties.scale}</div>
+    <div><b>count</b></div>
+    <div>${Math.round(object.properties.count)}</div>
+    <div><b>color</b></div>
+    <div>${object.properties.color}</div>
+    `;
+      } else { 
+        tooltip.innerHTML = '';
+      }
+    }
 
   </script>
 </html>
