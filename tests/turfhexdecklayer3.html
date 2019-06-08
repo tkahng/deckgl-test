@@ -54,7 +54,7 @@
   <script type="text/javascript">
 
     const bbox = turf.bbox(seoulhousingpricewgs);
-    const cellSide = 0.3;
+    const cellSide = 0.5;
     const options = {};
     var cleanHexGrid =[];
     var hexGrid = turf.hexGrid(bbox, cellSide, options);    
@@ -67,7 +67,9 @@
 
 
     hexGrid.features.forEach(f => {
-      f.properties.values = _.mean(f.properties.values)
+      f.properties.count = f.properties.types.length;
+      f.properties.values = _.mean(f.properties.values);
+
     });
     
     
@@ -75,13 +77,40 @@
        return feature.properties.types.length > 0 
     })
 
-    var collection = turf.featureCollection(matchingFeatures);
+    
 
-    var scaledFeatures = turf.transformScale(collection, 0.5);
+    // var scaledFeatures = turf.transformScale(collection, 0.5);
 
     var hexpricemax = _.max(_.map(matchingFeatures, _.property('properties.values')));
     var hexpricemin = _.min(_.map(matchingFeatures, _.property('properties.values')));
+    var hexcountmax = _.max(_.map(matchingFeatures, _.property('properties.count')));
+    var hexcountmin = _.min(_.map(matchingFeatures, _.property('properties.count')));
+
+    var colorLinearScale = d3.scaleLinear()
+                    .domain([hexpricemin, hexpricemax])
+                    .range([0.00,1.00]);
+
+    var valueLinearScale = d3.scaleLinear()
+                    .domain([hexpricemin, hexpricemax])
+                    .range([0.00,3000.00]);
+
+    var countLinearScale = d3.scaleLinear()
+                    .domain([hexcountmin, hexcountmax])
+                    .range([0.50,1.0]);
+
     
+
+    matchingFeatures.forEach(f=>{
+      f.properties.scale = countLinearScale(f.properties.count);
+    });
+
+    var scaledFeatures = matchingFeatures.map(f => turf.transformScale(f, f.properties.scale)); 
+
+    // matchingFeatures.forEach(f=> {
+    //   f = turf.transformScale(f, countLinearScale(f.properties.count));
+    // });
+
+    var collection = turf.featureCollection(scaledFeatures);
 
     const {DeckGL, GeoJsonLayer} = deck;
 
@@ -112,16 +141,8 @@
       [209, 55, 78]
     ];
 
-    var colorLinearScale = d3.scaleLinear()
-                    .domain([hexpricemin, hexpricemax])
-                    .range([0.00,1.00]);
-
-    var valueLinearScale = d3.scaleLinear()
-                    .domain([hexpricemin, hexpricemax])
-                    .range([0.00,3000.00]);
-
     const geojsonLayer = new GeoJsonLayer({
-      data: scaledFeatures,
+      data: collection,
       opacity: 1,
       stroked: false,
       filled: true,
@@ -130,7 +151,7 @@
       fp64: true,
 
       getElevation: f => valueLinearScale(f.properties.values),
-      getFillColor: f => colorScale(colorLinearScale(f.properties.values)),
+      getFillColor: f => rgbVal(d3.interpolateSpectral(colorLinearScale(f.properties.values))),
       getLineColor: [255, 255, 255],
 
       pickable: true,
@@ -149,6 +170,12 @@
       layers: [geojsonLayer]
     });
 
+    function rgbVal(c) {
+      let rgb = _.values(d3.color(c));
+      rgb.splice(-1,1);
+      return rgb;
+    }
+
     function colorScale(x) {
       const i = Math.round(x * 7) + 4;
       if (x < 0) {
@@ -166,8 +193,10 @@
         tooltip.innerHTML = `
     <div><b>Average Property Value &nbsp;</b></div>
     <div><div>${object.properties.values} / m<sup>2</sup></div></div>
-    <div><b>Growth</b></div>
-    <div>${Math.round(object.properties.density * 100)}%</div>
+    <div><b>scale</b></div>
+    <div>${object.properties.scale}</div>
+    <div><b>count</b></div>
+    <div>${Math.round(object.properties.count)}</div>
     `;
       } else { 
         tooltip.innerHTML = '';
