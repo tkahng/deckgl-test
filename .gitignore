@@ -1,4 +1,35 @@
+build/
+dist/
+dist.min.js
 node_modules/
+coverage/
+test/**/*-failed.png
+.nyc_output/
+.reify-cache/
+
+dist-demo/
+dist-bundle.js
+
+examples/winds/data/*.html
+mapbox-token.js
+TODO
+
+mapbox-gl.js
+mapbox-gl-dev.js
+
+*/**/yarn.lock
+yarn-error.log
+package-lock.json
+
+.vscode/
+.project
+.idea
+.DS_Store
+*.zip
+*.rar
+*.log
+.exit_code
+*.min.js
 
 # Compiled source #
 ###################
