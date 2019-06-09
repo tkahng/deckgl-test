@@ -1,16 +1,14 @@
 <html>
   <head>
     <title>deck.gl GeoJsonLayer Hexbin Turfjs</title>
+
     <script src="https://unpkg.com/deck.gl@^7.0.0/dist.min.js"></script>
-    <script src="https://unpkg.com/h3-js"></script>
-    <script src="https://bundle.run/geojson2h3@1.0.1"></script>
     <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.54.0/mapbox-gl.js"></script>
     <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.54.0/mapbox-gl.css' rel='stylesheet' />
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@5/turf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js"></script>
     <script src="https://d3js.org/d3.v5.min.js"></script> 
     <script src="https://d3js.org/d3-scale.v3.min.js"></script>
-
     <script src="seoulhousingpricewgs.geojson" type="text/javascript"></script>
 
     <style type="text/css">
@@ -60,9 +58,13 @@
     const options = {};
     var cleanHexGrid =[];
     var hexGrid = turf.hexGrid(bbox, cellSide, options);    
+    hexGrid.features.forEach(f => {
+      f.properties = { density: Math.random() };
+    });
 
     var hexGrid = turf.collect(hexGrid, seoulhousingpricewgs, 'A15', 'values');
     var hexGrid = turf.collect(hexGrid, seoulhousingpricewgs, 'A9', 'types');
+
 
     hexGrid.features.forEach(f => {
       f.properties.count = f.properties.types.length;
@@ -70,9 +72,14 @@
 
     });
     
+    
     var matchingFeatures = hexGrid.features.filter(function (feature){ 
        return feature.properties.types.length > 0 
     })
+
+    
+
+    // var scaledFeatures = turf.transformScale(collection, 0.5);
 
     var hexpricemax = _.max(_.map(matchingFeatures, _.property('properties.values')));
     var hexpricemin = _.min(_.map(matchingFeatures, _.property('properties.values')));
@@ -96,6 +103,7 @@
                     // .domain([hexcountmin, hexcountmax])
                     .range([50,300]);
 
+    
     matchingFeatures.forEach(f=>{
       f.properties.scale = countLinearScale(f.properties.count);
       var fcolor = rgbVal(d3.interpolateSpectral(1-colorLinearScale(f.properties.values)));
@@ -107,29 +115,19 @@
 
     var collection = turf.featureCollection(scaledFeatures);
 
-    var h3Resolution = 7;
-
-    var hexset = bufferPointsLinear(seoulhousingpricewgs, kmToRadius(1))
-
-    const geojson = geojson2h3.h3SetToFeatureCollection(
-      Object.keys(hexset),
-      hex => ({value: hexset[hex]})
-    );
-
-
-
     const {DeckGL, GeoJsonLayer} = deck;
 
     const geojsonLayer = new GeoJsonLayer({
-      data: geojson,
+      data: collection,
       opacity: 1,
       stroked: true,
       filled: true,
-      extruded: false,
+      extruded: true,
       wireframe: false,
       fp64: true,
-      // getElevation: f => valueLinearScale(f.properties.values),
-      // getFillColor: f => f.properties.color,
+
+      getElevation: f => valueLinearScale(f.properties.values),
+      getFillColor: f => f.properties.color,
       getLineColor: [255, 255, 255, 255],
       getLineWidth: 2,
       pickable: true,
@@ -148,64 +146,6 @@
       layers: [geojsonLayer]
     });
 
-    function bufferPoints(geojson, radius) {
-      const layer = {};
-      geojson.features.forEach(feature => {
-        const [lng, lat] = feature.geometry.coordinates;
-        const stationIndex = h3.geoToH3(lat, lng, h3Resolution);
-        const ring = h3.kRing(stationIndex, radius);
-        ring.forEach(h3Index => {
-          layer[h3Index] = (layer[h3Index] || 0) + 1;
-        });
-      });
-      return normalizeLayer(layer, true);
-    }
-
-    function bufferPointsLinear(geojson, radius) {
-      const layer = {};
-      geojson.features.forEach(feature => {
-        const [lng, lat] = feature.geometry.coordinates;
-        const stationIndex = h3.geoToH3(lat, lng, h3Resolution);
-        // add surrounding multiple surrounding rings, with less weight in each
-        const rings = h3.kRingDistances(stationIndex, radius);
-        const step = 1 / (radius + 1);
-        rings.forEach((ring, distance) => {
-          ring.forEach(h3Index => {
-            layer[h3Index] = (layer[h3Index] || 0) + 1 - distance * step;
-          })
-        });
-      });
-      return normalizeLayer(layer);
-    }
-
-    function normalizeLayer(layer, zeroBaseline = false) {
-      const hexagons = Object.keys(layer);
-      // Pass one, get max (and min if needed)
-      const max = hexagons.reduce((max, hex) => Math.max(max, layer[hex]), -Infinity);
-      const min = zeroBaseline ? 0 :
-            hexagons.reduce((min, hex) => Math.min(min, layer[hex]), Infinity);
-      // Pass two, normalize
-      hexagons.forEach(hex => {
-        layer[hex] = (layer[hex] - min) / (max - min); 
-      });
-      return layer;
-    }
-
-    // Transform a kilometer measurement to a k-ring radius
-    function kmToRadius(km) {
-      return Math.floor(km / h3.edgeLength(h3Resolution, h3.UNITS.km));
-    }
-
-    function countPoints(geojson) {
-      const layer = {};
-      geojson.features.forEach(feature => {
-        const [lng, lat] = feature.geometry.coordinates;
-        const h3Index = h3.geoToH3(lat, lng, h3Resolution);
-        layer[h3Index] = (layer[h3Index] || 0) + 1;
-      });
-      return normalizeLayer(layer, true);
-    }
-    
     function rgbVal(c) {
       let rgb = _.values(d3.color(c));
       rgb.splice(-1,1);
