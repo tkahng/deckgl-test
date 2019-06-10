@@ -99,7 +99,7 @@
     ];
 
     // _.reverse(COLOR_RANGE);
-
+    
     OPTIONS.forEach(key => {
       document.getElementById(key).oninput = renderLayer;
     });
@@ -129,6 +129,7 @@
         extruded: true,
         getPosition: d => turf.getCoords(d),
         getElevationValue: d => _.mean(_.map(d, _.property('properties.A15'))),
+        getColorValue: d => _.mean(_.map(d, _.property('properties.A15'))),
         opacity: 0.5,
         ...options
       });
@@ -136,6 +137,16 @@
       deckgl.setProps({
         layers: [hexagonLayer, pointLayer]
       });
+    }
+
+    function avgProp(feat, prop) {
+      
+    }
+
+    function rgbVal(c) {
+      let rgb = _.values(d3.color(c));
+      rgb.splice(-1,1);
+      return rgb;
     }
 
     (function () {

@@ -65,10 +65,7 @@ config = ({
 
 var h3Resolution = 8;
 
-
-// var hexset = countPoints(datamin);
-// var hexset = bufferPoints(datamin, kmToRadius(1));
-var hexset = bufferPointsLinear(datamin, kmToRadius(1));
+var hexset = bufferPointsLinear(datamin, kmToRadius(1))
 
 const geojson = geojson2h3.h3SetToFeatureCollection(
     Object.keys(hexset),
@@ -79,16 +76,8 @@ const geojson = geojson2h3.h3SetToFeatureCollection(
 
 const {DeckGL, GeoJsonLayer} = deck;
 
-const pointLayer = new ScatterplotLayer({
-    id: 'scatter-plot',
-    data: datamin.features,
-    radiusScale: 100,
-    radiusMinPixels: 0.5,
-    getPosition: d => turf.getCoords(d),
-})
-
 const geojsonLayer = new GeoJsonLayer({
-    data: geojson.features,
+    data: geojson,
     opacity: 1,
     stroked: true,
     filled: true,
@@ -96,11 +85,11 @@ const geojsonLayer = new GeoJsonLayer({
     wireframe: false,
     fp64: true,
     // getElevation: f => valueLinearScale(f.properties.values),
-    getFillColor: f => rgbVal(d3.interpolateSpectral(1-f.properties.value)),
+    // getFillColor: f => f.properties.color,
     getLineColor: [255, 255, 255, 255],
     getLineWidth: 2,
     pickable: true,
-    onHover: updateTooltip
+    // onHover: updateTooltip
 });
 
 new DeckGL({
@@ -112,7 +101,7 @@ new DeckGL({
     maxZoom: 16,
     pitch: 60,
     bearing: 150,
-    layers: [geojsonLayer, pointLayer]
+    layers: [geojsonLayer]
 });
 
 function bufferPoints(geojson, radius) {
@@ -173,29 +162,29 @@ function countPoints(geojson) {
     return normalizeLayer(layer, true);
 }
 
-function rgbVal(c) {
-    let rgb = _.values(d3.color(c));
-    rgb.splice(-1,1);
-    return rgb;
-}
+// function rgbVal(c) {
+//     let rgb = _.values(d3.color(c));
+//     rgb.splice(-1,1);
+//     return rgb;
+// }
 
-function updateTooltip({x, y, object}) {
-    const tooltip = document.getElementById('tooltip');
+// function updateTooltip({x, y, object}) {
+//     const tooltip = document.getElementById('tooltip');
 
-    if (object) {
-    tooltip.style.top = `${y}px`;
-    tooltip.style.left = `${x}px`;
-    tooltip.innerHTML = `
-<div><b>Average Property Value &nbsp;</b></div>
-<div><div>${object.properties.value} / m<sup>2</sup></div></div>
-<div><b>scale</b></div>
-<div>${object.properties.scale}</div>
-<div><b>count</b></div>
-<div>${Math.round(object.properties.count)}</div>
-<div><b>color</b></div>
-<div>${object.properties.color}</div>
-`;
-    } else { 
-    tooltip.innerHTML = '';
-    }
-}
+//     if (object) {
+//     tooltip.style.top = `${y}px`;
+//     tooltip.style.left = `${x}px`;
+//     tooltip.innerHTML = `
+// <div><b>Average Property Value &nbsp;</b></div>
+// <div><div>${object.properties.values} / m<sup>2</sup></div></div>
+// <div><b>scale</b></div>
+// <div>${object.properties.scale}</div>
+// <div><b>count</b></div>
+// <div>${Math.round(object.properties.count)}</div>
+// <div><b>color</b></div>
+// <div>${object.properties.color}</div>
+// `;
+//     } else { 
+//     tooltip.innerHTML = '';
+//     }
+// }
