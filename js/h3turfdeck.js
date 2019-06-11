@@ -80,14 +80,14 @@ const {DeckGL, GeoJsonLayer} = deck;
 
 const pointLayer = new ScatterplotLayer({
     id: 'scatter-plot',
-    data: seoulhousingpricewgs.features,
+    data: seoulmetrostation.features,
     radiusScale: 10,
     radiusMinPixels: 0.5,
     getPosition: d => turf.getCoords(d),
 })
 
 const geojsonLayer = new GeoJsonLayer({
-    data: geojson.features,
+    data: geojson,
     opacity: 1,
     stroked: true,
     filled: true,
@@ -187,7 +187,7 @@ function updateTooltip({x, y, object}) {
     tooltip.style.left = `${x}px`;
     tooltip.innerHTML = `
 <div><b>Average Property Value &nbsp;</b></div>
-<div><div>${object.properties.value} / m<sup>2</sup></div></div>
+<div><div>${object.properties.values} / m<sup>2</sup></div></div>
 <div><b>scale</b></div>
 <div>${object.properties.scale}</div>
 <div><b>count</b></div>
