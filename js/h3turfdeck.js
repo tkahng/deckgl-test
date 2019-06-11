@@ -6,62 +6,13 @@
 // hexGrid.features.forEach(f => {
 //     f.properties = { density: Math.random() };
 // });
-
-// var hexGrid = turf.collect(hexGrid, seoulhousingpricewgs, 'A15', 'values');
-// var hexGrid = turf.collect(hexGrid, seoulhousingpricewgs, 'A9', 'types');
-
-// hexGrid.features.forEach(f => {
-//     f.properties.count = f.properties.types.length;
-//     f.properties.values = _.mean(f.properties.values);
-
-// });
-
-// var matchingFeatures = hexGrid.features.filter(function (feature){ 
-//     return feature.properties.types.length > 0 
-// })
-
-const datamin = turf.sample(seoulhousingpricewgs, 100);
-
-// var hexpricemax = _.max(_.map(matchingFeatures, _.property('properties.values')));
-// var hexpricemin = _.min(_.map(matchingFeatures, _.property('properties.values')));
-// var hexcountmax = _.max(_.map(matchingFeatures, _.property('properties.count')));
-// var hexcountmin = _.min(_.map(matchingFeatures, _.property('properties.count')));
-
-// var colorLinearScale = d3.scaleLinear()
-//                 .domain([hexpricemin, hexpricemax])
-//                 .range([0.00,1.00]);
-
-// var valueLinearScale = d3.scaleLinear()
-//                 .domain([hexpricemin, hexpricemax])
-//                 .range([0.00,3000.00]);
-
-// var countLinearScale = d3.scaleLinear()
-//                 .domain([hexcountmin, hexcountmax])
-//                 .range([0.50,2.0]);
-
-// var alphaLinearScale = d3.scaleLinear()
-//                 .domain([hexpricemin, hexpricemax])
-//                 // .domain([hexcountmin, hexcountmax])
-//                 .range([50,300]);
-
-// matchingFeatures.forEach(f=>{
-//     f.properties.scale = countLinearScale(f.properties.count);
-//     var fcolor = rgbVal(d3.interpolateSpectral(1-colorLinearScale(f.properties.values)));
-//     fcolor.push(Math.round(alphaLinearScale(f.properties.values)));
-//     f.properties.color = fcolor;
-// });
-
-// var scaledFeatures = matchingFeatures.map(f => turf.transformScale(f, f.properties.scale)); 
-
-// var collection = turf.featureCollection(scaledFeatures);
-
-config = ({
+var config = ({
     lng: -122.2,
     lat: 37.7923539,
     zoom: 10.5,
     fillOpacity: 0.75,
     colorScale: ['#ffffD9', '#50BAC3', '#1A468A']
-  });
+});
 
 var h3Resolution = 9;
 
@@ -70,10 +21,58 @@ var h3Resolution = 9;
 // var hexset = bufferPoints(datamin, kmToRadius(1));
 var hexset = bufferPointsLinear(seoulhousingpricewgs, kmToRadius(0.1));
 
-const geojson = geojson2h3.h3SetToFeatureCollection(
+var geojson = geojson2h3.h3SetToFeatureCollection(
     Object.keys(hexset),
-    hex => ({value: hexset[hex]})
+    hex => ({densityvalue: hexset[hex]})
 );
+
+var geojson = turf.collect(geojson, seoulhousingpricewgs, 'A15', 'values');
+var geojson = turf.collect(geojson, seoulhousingpricewgs, 'A9', 'types');
+
+geojson.features.forEach(f => {
+    f.properties.count = f.properties.types.length;
+    f.properties.values = _.mean(f.properties.values);
+
+});
+
+// var matchingFeatures = hexGrid.features.filter(function (feature){ 
+//     return feature.properties.types.length > 0 
+// })
+
+// const datamin = turf.sample(seoulhousingpricewgs, 100);
+
+var hexpricemax = _.max(_.map(geojson.features, _.property('properties.values')));
+var hexpricemin = _.min(_.map(geojson.features, _.property('properties.values')));
+var hexcountmax = _.max(_.map(geojson.features, _.property('properties.count')));
+var hexcountmin = _.min(_.map(geojson.features, _.property('properties.count')));
+
+var colorLinearScale = d3.scaleLinear()
+                .domain([hexpricemin, hexpricemax])
+                .range([0.00,1.00]);
+
+var valueLinearScale = d3.scaleLinear()
+                .domain([hexpricemin, hexpricemax])
+                .range([0.00,3000.00]);
+
+var countLinearScale = d3.scaleLinear()
+                .domain([hexcountmin, hexcountmax])
+                .range([0.50,2.0]);
+
+var alphaLinearScale = d3.scaleLinear()
+                .domain([hexpricemin, hexpricemax])
+                // .domain([hexcountmin, hexcountmax])
+                .range([50,300]);
+
+geojson.features.forEach(f=>{
+    f.properties.scale = countLinearScale(f.properties.count);
+    var fcolor = rgbVal(d3.interpolateSpectral(1-colorLinearScale(f.properties.values)));
+    fcolor.push(Math.round(alphaLinearScale(f.properties.values)));
+    f.properties.color = fcolor;
+});
+
+var geojson = geojson.features.map(f => turf.transformScale(f, f.properties.scale)); 
+
+// var collection = turf.featureCollection(scaledFeatures);
 
 
 
@@ -92,11 +91,12 @@ const geojsonLayer = new GeoJsonLayer({
     opacity: 1,
     stroked: true,
     filled: true,
-    extruded: false,
+    extruded: true,
     wireframe: false,
     fp64: true,
-    // getElevation: f => valueLinearScale(f.properties.values),
-    getFillColor: f => rgbVal(d3.interpolateSpectral(1-f.properties.value)),
+    getElevation: f => valueLinearScale(f.properties.values),
+    // getFillColor: f => rgbVal(d3.interpolateSpectral(1-f.properties.value)),
+    getFillColor: f => f.properties.color,
     getLineColor: [255, 255, 255, 255],
     getLineWidth: 2,
     pickable: true,
