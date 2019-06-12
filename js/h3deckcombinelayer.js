@@ -21,9 +21,21 @@ var h3Resolution = 9;
 // var hexset = bufferPoints(datamin, kmToRadius(1));
 var hexset = bufferPointsLinear(seoulhousingpricewgs, kmToRadius(0.1));
 
+var schoolsLayer = school(seouledu);
+var resLayer = residential(seoulhousingpricewgs);
+var metroLayer = normalizeLayer(bufferPointsLinear(seoulmetro, kmToRadius(1)));
+
+var mapLayers = [
+    {hexagons: schoolsLayer, weight: 0.5},
+    {hexagons: metroLayer, weight: 0.5},
+    {hexagons: resLayer, weight: 0.5},
+];
+
+var combinedLayers = combineLayers(mapLayers);
+
 var geojson = geojson2h3.h3SetToFeatureCollection(
     Object.keys(hexset),
-    hex => ({densityvalue: hexset[hex]})
+    hex => ({value: hexset[hex]})
 );
 
 var geojson = turf.collect(geojson, seoulhousingpricewgs, 'A15', 'values');
@@ -32,7 +44,6 @@ var geojson = turf.collect(geojson, seoulhousingpricewgs, 'A9', 'types');
 geojson.features.forEach(f => {
     f.properties.count = f.properties.types.length;
     f.properties.values = _.mean(f.properties.values);
-
 });
 
 // var matchingFeatures = hexGrid.features.filter(function (feature){ 
@@ -80,28 +91,44 @@ const {DeckGL, GeoJsonLayer} = deck;
 
 const pointLayer = new ScatterplotLayer({
     id: 'scatter-plot',
-    data: seoulmetrostation.features,
+    data: seoulmetro.features,
     radiusScale: 10,
     radiusMinPixels: 0.5,
     getPosition: d => turf.getCoords(d),
 })
 
 const geojsonLayer = new GeoJsonLayer({
-    data: geojson,
+    data: geojson.features,
     opacity: 1,
     stroked: true,
     filled: true,
-    extruded: true,
+    extruded: false,
     wireframe: false,
     fp64: true,
-    getElevation: f => valueLinearScale(f.properties.values),
-    // getFillColor: f => rgbVal(d3.interpolateSpectral(1-f.properties.value)),
-    getFillColor: f => f.properties.color,
+    // getElevation: f => valueLinearScale(f.properties.values),
+    getFillColor: f => rgbVal(d3.interpolateSpectral(1-f.properties.value)),
     getLineColor: [255, 255, 255, 255],
     getLineWidth: 2,
     pickable: true,
     onHover: updateTooltip
 });
+
+// const geojsonLayer = new GeoJsonLayer({
+//     data: geojson,
+//     opacity: 1,
+//     stroked: true,
+//     filled: true,
+//     extruded: true,
+//     wireframe: false,
+//     fp64: true,
+//     getElevation: f => valueLinearScale(f.properties.values),
+//     // getFillColor: f => rgbVal(d3.interpolateSpectral(1-f.properties.value)),
+//     getFillColor: f => f.properties.color,
+//     getLineColor: [255, 255, 255, 255],
+//     getLineWidth: 2,
+//     pickable: true,
+//     onHover: updateTooltip
+// });
 
 new DeckGL({
     mapboxApiAccessToken: 'pk.eyJ1IjoidGthaG5nIiwiYSI6ImNqOTU3aWtnejRldGgycnF6d3JueG5wb2IifQ.vOYkEc5_mcoA2gtILL5ZmA',
@@ -114,6 +141,41 @@ new DeckGL({
     bearing: 150,
     layers: [geojsonLayer, pointLayer]
 });
+
+function combineLayers(mapLayers){
+    const combined = {};
+    mapLayers.forEach(({hexagons, weight}) => {
+      Object.keys(hexagons).forEach(hex => {
+        combined[hex] = (combined[hex] || 0) + hexagons[hex] * weight;
+      });
+    });
+    return normalizeLayer(combined);
+}
+
+function residential(geojson){
+    const layer = {};
+    geojson.features.forEach(feature => {
+        const [lng, lat] = feature.geometry.coordinates;
+        const h3Index = h3.geoToH3(lat, lng, h3Resolution);
+        layer[h3Index] = (layer[h3Index] || 0) + 1;
+    });
+    return normalizeLayer(layer);
+}
+
+function school(geojson) {
+    const layer = {};
+    geojson.features.forEach(feature => {
+        const [lng, lat] = feature.geometry.coordinates;
+        const h3Index = h3.geoToH3(lat, lng, h3Resolution);
+        // Add school hex
+        layer[h3Index] = (layer[h3Index] || 0) + 1;
+        // add surrounding kRing, with less weight
+        h3.hexRing(h3Index, 1).forEach(neighbor => {
+            layer[neighbor] = (layer[neighbor] || 0) + 0.5;
+        });
+    });
+    return normalizeLayer(layer);
+}
 
 function bufferPoints(geojson, radius) {
     const layer = {};
