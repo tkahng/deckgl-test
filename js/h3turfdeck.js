@@ -27,10 +27,10 @@ var geojson = geojson2h3.h3SetToFeatureCollection(
 );
 
 var geojson = turf.collect(geojson, seoulhousingpricewgs, 'A15', 'values');
-var geojson = turf.collect(geojson, seoulhousingpricewgs, 'A9', 'types');
+// var geojson = turf.collect(geojson, seoulhousingpricewgs, 'A9', 'types');
 
 geojson.features.forEach(f => {
-    f.properties.count = f.properties.types.length;
+    f.properties.count = f.properties.values.length;
     f.properties.values = _.mean(f.properties.values);
 
 });
@@ -78,14 +78,6 @@ var geojson = geojson.features.map(f => turf.transformScale(f, f.properties.scal
 
 const {DeckGL, GeoJsonLayer} = deck;
 
-const pointLayer = new ScatterplotLayer({
-    id: 'scatter-plot',
-    data: seoulmetrostation.features,
-    radiusScale: 10,
-    radiusMinPixels: 0.5,
-    getPosition: d => turf.getCoords(d),
-})
-
 const geojsonLayer = new GeoJsonLayer({
     data: geojson,
     opacity: 1,
@@ -112,7 +104,7 @@ new DeckGL({
     maxZoom: 16,
     pitch: 60,
     bearing: 150,
-    layers: [geojsonLayer, pointLayer]
+    layers: [geojsonLayer]
 });
 
 function bufferPoints(geojson, radius) {

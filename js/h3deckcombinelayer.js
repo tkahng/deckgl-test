@@ -1,11 +1,4 @@
-// const bbox = turf.bbox(seoulhousingpricewgs);
-// const cellSide = 0.3;
-// const options = {};
-// var cleanHexGrid =[];
-// var hexGrid = turf.hexGrid(bbox, cellSide, options);    
-// hexGrid.features.forEach(f => {
-//     f.properties = { density: Math.random() };
-// });
+
 var config = ({
     lng: -122.2,
     lat: 37.7923539,
@@ -34,58 +27,9 @@ var mapLayers = [
 var combinedLayers = combineLayers(mapLayers);
 
 var geojson = geojson2h3.h3SetToFeatureCollection(
-    Object.keys(hexset),
-    hex => ({value: hexset[hex]})
+    Object.keys(combinedLayers),
+    hex => ({value: combinedLayers[hex]})
 );
-
-var geojson = turf.collect(geojson, seoulhousingpricewgs, 'A15', 'values');
-var geojson = turf.collect(geojson, seoulhousingpricewgs, 'A9', 'types');
-
-geojson.features.forEach(f => {
-    f.properties.count = f.properties.types.length;
-    f.properties.values = _.mean(f.properties.values);
-});
-
-// var matchingFeatures = hexGrid.features.filter(function (feature){ 
-//     return feature.properties.types.length > 0 
-// })
-
-// const datamin = turf.sample(seoulhousingpricewgs, 100);
-
-var hexpricemax = _.max(_.map(geojson.features, _.property('properties.values')));
-var hexpricemin = _.min(_.map(geojson.features, _.property('properties.values')));
-var hexcountmax = _.max(_.map(geojson.features, _.property('properties.count')));
-var hexcountmin = _.min(_.map(geojson.features, _.property('properties.count')));
-
-var colorLinearScale = d3.scaleLinear()
-                .domain([hexpricemin, hexpricemax])
-                .range([0.00,1.00]);
-
-var valueLinearScale = d3.scaleLinear()
-                .domain([hexpricemin, hexpricemax])
-                .range([0.00,3000.00]);
-
-var countLinearScale = d3.scaleLinear()
-                .domain([hexcountmin, hexcountmax])
-                .range([0.50,2.0]);
-
-var alphaLinearScale = d3.scaleLinear()
-                .domain([hexpricemin, hexpricemax])
-                // .domain([hexcountmin, hexcountmax])
-                .range([50,300]);
-
-geojson.features.forEach(f=>{
-    f.properties.scale = countLinearScale(f.properties.count);
-    var fcolor = rgbVal(d3.interpolateSpectral(1-colorLinearScale(f.properties.values)));
-    fcolor.push(Math.round(alphaLinearScale(f.properties.values)));
-    f.properties.color = fcolor;
-});
-
-var geojson = geojson.features.map(f => turf.transformScale(f, f.properties.scale)); 
-
-// var collection = turf.featureCollection(scaledFeatures);
-
-
 
 const {DeckGL, GeoJsonLayer} = deck;
 
@@ -99,7 +43,7 @@ const pointLayer = new ScatterplotLayer({
 
 const geojsonLayer = new GeoJsonLayer({
     data: geojson.features,
-    opacity: 1,
+    opacity: 0.5,
     stroked: true,
     filled: true,
     extruded: false,
@@ -113,23 +57,6 @@ const geojsonLayer = new GeoJsonLayer({
     onHover: updateTooltip
 });
 
-// const geojsonLayer = new GeoJsonLayer({
-//     data: geojson,
-//     opacity: 1,
-//     stroked: true,
-//     filled: true,
-//     extruded: true,
-//     wireframe: false,
-//     fp64: true,
-//     getElevation: f => valueLinearScale(f.properties.values),
-//     // getFillColor: f => rgbVal(d3.interpolateSpectral(1-f.properties.value)),
-//     getFillColor: f => f.properties.color,
-//     getLineColor: [255, 255, 255, 255],
-//     getLineWidth: 2,
-//     pickable: true,
-//     onHover: updateTooltip
-// });
-
 new DeckGL({
     mapboxApiAccessToken: 'pk.eyJ1IjoidGthaG5nIiwiYSI6ImNqOTU3aWtnejRldGgycnF6d3JueG5wb2IifQ.vOYkEc5_mcoA2gtILL5ZmA',
     mapStyle: 'mapbox://styles/mapbox/dark-v9',
@@ -141,6 +68,8 @@ new DeckGL({
     bearing: 150,
     layers: [geojsonLayer, pointLayer]
 });
+
+const OPTIONS = ['school', 'coverage', 'upperPercentile'];
 
 function combineLayers(mapLayers){
     const combined = {};

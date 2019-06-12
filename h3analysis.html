@@ -1,0 +1,58 @@
+<html>
+  <head>
+    <title>deck.gl Test</title>
+    <script src="https://unpkg.com/deck.gl@^7.0.0/dist.min.js"></script>
+    <script src="https://unpkg.com/h3-js"></script>
+    <script src="https://bundle.run/geojson2h3@1.0.1"></script>
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.54.0/mapbox-gl.js"></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.54.0/mapbox-gl.css' rel='stylesheet' />
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@5/turf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script> 
+    <script src="https://d3js.org/d3-scale.v3.min.js"></script>
+    <script src="tests/seoulhousingpricewgs.geojson" type="text/javascript"></script>
+    <script src="data/seoulmetro.geojson" type="text/javascript"></script>
+    <script src="data/seouledu.geojson" type="text/javascript"></script>
+
+
+    <style type="text/css">
+      body {
+        width: 100vw;
+        height: 100vh;
+        margin: 0;
+      }
+      #control-panel {
+        position: absolute;
+        background: #fff;
+        top: 0;
+        left: 0;
+        margin: 12px;
+        padding: 20px;
+        font-size: 12px;
+        line-height: 1.5;
+        z-index: 1;
+      }
+      #tooltip:empty {
+        display: none;
+      }
+      #tooltip {
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 11px;
+        position: absolute;
+        padding: 4px;
+        margin: 8px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        max-width: 300px;
+        font-size: 10px;
+        z-index: 9;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="tooltip"></div>
+    <script src="js/h3deckcombinelayer.js"></script>
+  </body>
+</html>
