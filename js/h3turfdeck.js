@@ -56,7 +56,7 @@ var valueLinearScale = d3.scaleLinear()
 
 var countLinearScale = d3.scaleLinear()
                 .domain([hexcountmin, hexcountmax])
-                .range([0.50,2.0]);
+                .range([0.50,3.0]);
 
 var alphaLinearScale = d3.scaleLinear()
                 .domain([hexpricemin, hexpricemax])
