@@ -6,6 +6,9 @@
 // hexGrid.features.forEach(f => {
 //     f.properties = { density: Math.random() };
 // });
+
+/* eslint-disable */
+
 var config = ({
     lng: -122.2,
     lat: 37.7923539,
@@ -14,7 +17,7 @@ var config = ({
     colorScale: ['#ffffD9', '#50BAC3', '#1A468A']
 });
 
-var h3Resolution = 9;
+var h3Resolution = 8;
 
 
 // var hexset = countPoints(datamin);
