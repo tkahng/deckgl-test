@@ -2,7 +2,7 @@
   <head>
     <title>deck.gl HexagonLayer Example</title>
 
-    <script src="https://unpkg.com/deck.gl@^7.0.0/dist.min.js"></script>
+    <script src="https://unpkg.com/deck.gl@latest/dist.min.js"></script>
     <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
     <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js"></script>
@@ -41,12 +41,12 @@
     <div id="control-panel">
       <div>
         <label>Radius</label>
-        <input id="radius" type="range" min="10" max="1000" step="10" value="1000"></input>
+        <input id="radius" type="range" min="10" max="1000" step="10" value="300"></input>
         <span id="radius-value"></span>
       </div>
       <div>
         <label>Coverage</label>
-        <input id="coverage" type="range" min="0" max="1" step="0.1" value="1"></input>
+        <input id="coverage" type="range" min="0" max="1" step="0.1" value="0.7"></input>
         <span id="coverage-value"></span>
       </div>
       <div>
@@ -129,7 +129,7 @@
         getPosition: d => turf.getCoords(d),
         getElevationValue: d => _.mean(_.map(d, _.property('properties.A15'))),
         getColorValue: d => _.mean(_.map(d, _.property('properties.A15'))),
-        opacity: 0.5,
+        opacity: 0.2,
         ...options
       });
 
